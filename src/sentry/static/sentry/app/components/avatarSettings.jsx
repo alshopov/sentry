@@ -1,14 +1,26 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 
+import ApiMixin from '../mixins/apiMixin';
 
 const AvatarSettings = React.createClass({
   propTypes: {
     userId: React.PropTypes.number
   },
 
+  mixins: [ApiMixin],
+
   getInitialState() {
     return {
-      error: null
+      error: null,
+      moving: false,
+      resizeDone: false,
+      resizeDimensions: {
+        top: 0,
+        left: 0,
+        width: 80,
+        height: 80
+      }
     };
   },
 
@@ -30,11 +42,92 @@ const AvatarSettings = React.createClass({
     this.state.objectURL && window.URL.revokeObjectURL(this.state.objectURL);
   },
 
+  updateDimensions(ev) {
+    let $container = $(ReactDOM.findDOMNode(this.refs.cropContainer));
+    let offset = $container.offset();
+    let top = ev.pageY - offset.top;
+    let left = ev.pageX - offset.left;
+    this.setState({resizeDimensions: Object.assign({}, this.state.resizeDimensions, {top: top, left: left})});
+  },
+
+  startMove() {
+    $(document).on('mousemove', this.updateDimensions);
+  },
+
+  stopMove() {
+    $(document).off('mousemove', this.updateDimensions);
+    let canvas = $(ReactDOM.findDOMNode(this.refs.canvas))[0];
+    let resizeDimensions = this.state.resizeDimensions;
+    let img = ReactDOM.findDOMNode(this.refs.image);
+    canvas.width = resizeDimensions.width;
+    canvas.height = resizeDimensions.height;
+    canvas.getContext('2d').drawImage(img,
+                                      resizeDimensions.left,
+                                      resizeDimensions.top,
+                                      resizeDimensions.width,
+                                      resizeDimensions.height,
+                                      0, 0,
+                                      resizeDimensions.width,
+                                      resizeDimensions.height);
+  },
+
+  onMouseDown(ev) {
+    ev.preventDefault();
+    this.setState({moving: true});
+    this.startMove();
+  },
+
+  onMouseUp(ev) {
+    ev.preventDefault();
+    this.setState({moving: false});
+    this.stopMove();
+  },
+
+  getEndpoint() {
+    return '/users/me/avatar/';
+  },
+
+  saveSuccess() {
+    // TODO
+  },
+
+  saveFail() {
+    // TODO
+  },
+
+  finishCrop() {
+    let canvas = $(ReactDOM.findDOMNode(this.refs.canvas))[0];
+    this.api.request(this.getEndpoint(), {
+      method: 'POST',
+      data: {avatar: canvas.toDataURL().split(',')[1]},
+      success: this.saveSuccess,
+      error: this.saveFail
+    });
+  },
+
+  renderImageCrop() {
+    return (
+      <div ref="cropContainer" style={{position: 'relative'}}>
+        {this.state.objectURL && <img ref="image" src={this.state.objectURL} />}
+        <div style={Object.assign({position: 'absolute', border: '1px solid black'},
+                    this.state.resizeDimensions)}
+             onMouseUp={this.onMouseUp} onMouseDown={this.onMouseDown}/>
+      </div>
+    );
+  },
+
+  renderDataImage() {
+    return <img src={this.state.dataUrl}/>;
+  },
+
   render() {
     return (
       <div>
         <input type="file" accept="image/*" onChange={this.onChange}/>
-        {this.state.objectURL && <img src={this.state.objectURL} />}
+        {this.state.objectURL && this.renderImageCrop()}
+        <canvas ref="canvas"></canvas>
+        {this.state.objectURL && <div><button onClick={this.finishCrop}>Done</button></div>}
+        {this.state.dataUrl && this.renderDataImage()}
       </div>
     );
   }

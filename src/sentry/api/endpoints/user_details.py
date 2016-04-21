@@ -79,3 +79,12 @@ class UserDetailsEndpoint(UserEndpoint):
             return Response(serialize(user, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserAvatarEndpoint(UserEndpoint):
+    def post(self, request, user):
+        string = request.DATA['avatar'].decode('base64')
+        with open('user_photo_%s.png' % user.id, 'wb') as user_photo:
+            user_photo.write(string)
+            user_photo.close()
+        return Response({'success': True})
