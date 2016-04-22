@@ -18,8 +18,8 @@ const AvatarSettings = React.createClass({
       resizeDimensions: {
         top: 0,
         left: 0,
-        width: 80,
-        height: 80
+        width: 180,
+        height: 180
       }
     };
   },
@@ -52,23 +52,13 @@ const AvatarSettings = React.createClass({
 
   startMove() {
     $(document).on('mousemove', this.updateDimensions);
+    $(document).on('mouseup', this.onMouseUp);
   },
 
   stopMove() {
     $(document).off('mousemove', this.updateDimensions);
-    let canvas = $(ReactDOM.findDOMNode(this.refs.canvas))[0];
-    let resizeDimensions = this.state.resizeDimensions;
-    let img = ReactDOM.findDOMNode(this.refs.image);
-    canvas.width = resizeDimensions.width;
-    canvas.height = resizeDimensions.height;
-    canvas.getContext('2d').drawImage(img,
-                                      resizeDimensions.left,
-                                      resizeDimensions.top,
-                                      resizeDimensions.width,
-                                      resizeDimensions.height,
-                                      0, 0,
-                                      resizeDimensions.width,
-                                      resizeDimensions.height);
+    $(document).off('mouseup', this.onMouseUp);
+    this.drawToCanvas();
   },
 
   onMouseDown(ev) {
@@ -95,6 +85,30 @@ const AvatarSettings = React.createClass({
     // TODO
   },
 
+  onLoad(ev) {
+    let $img = $(this.refs.image);
+    let dimension = Math.min($img.height(), $img.width());
+    this.setState({
+      resizeDimensions: Object.assign({}, this.state.resizeDimensions, {width: dimension, height: dimension})
+    }, this.drawToCanvas);
+  },
+
+  drawToCanvas() {
+    let canvas = $(ReactDOM.findDOMNode(this.refs.canvas))[0];
+    let resizeDimensions = this.state.resizeDimensions;
+    let img = ReactDOM.findDOMNode(this.refs.image);
+    canvas.width = resizeDimensions.width;
+    canvas.height = resizeDimensions.height;
+    canvas.getContext('2d').drawImage(img,
+                                      resizeDimensions.left,
+                                      resizeDimensions.top,
+                                      resizeDimensions.width,
+                                      resizeDimensions.height,
+                                      0, 0,
+                                      resizeDimensions.width,
+                                      resizeDimensions.height);
+  },
+
   finishCrop() {
     let canvas = $(ReactDOM.findDOMNode(this.refs.canvas))[0];
     this.api.request(this.getEndpoint(), {
@@ -107,11 +121,14 @@ const AvatarSettings = React.createClass({
 
   renderImageCrop() {
     return (
-      <div ref="cropContainer" style={{position: 'relative'}}>
-        {this.state.objectURL && <img ref="image" src={this.state.objectURL} />}
-        <div style={Object.assign({position: 'absolute', border: '1px solid black'},
-                    this.state.resizeDimensions)}
-             onMouseUp={this.onMouseUp} onMouseDown={this.onMouseDown}/>
+      <div className="image-cropper">
+        <div className="crop-container" ref="cropContainer">
+          {this.state.objectURL && <img className="preview" ref="image"
+                                        src={this.state.objectURL} onLoad={this.onLoad}/>}
+          <div style={Object.assign({position: 'absolute', border: '1px solid black'},
+                      this.state.resizeDimensions)}
+               onMouseUp={this.onMouseUp} onMouseDown={this.onMouseDown}/>
+        </div>
       </div>
     );
   },

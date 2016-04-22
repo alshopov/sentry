@@ -626,6 +626,26 @@ table.integrations {
 }
 
 /**
+* Avatar Cropping
+* ============================================================================
+*/
+
+.image-cropper {
+  background-color: @gray-lightest;
+  padding: 10px;
+  text-align: center;
+  .crop-container {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+  img.preview {
+    max-width: none;
+  }
+}
+
+/**
 * Loading Indicator
 * ============================================================================
 */
